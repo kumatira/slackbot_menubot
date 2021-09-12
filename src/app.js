@@ -41,7 +41,6 @@ app.message('hello', async ({ message, say }) => {
 });
 
 app.action('register_recipe', async ({ ack, body, client }) => {
-    // Acknowledge the action
     await ack();
     try {
         const result = await client.views.open({
@@ -55,7 +54,7 @@ app.action('register_recipe', async ({ ack, body, client }) => {
                 },
                 "submit": {
                     "type": "plain_text",
-                    "text": "Submita"
+                    "text": "Submit"
                 },
                 "type": "modal",
                 "callback_id": "view_1",
@@ -94,63 +93,121 @@ app.action('register_recipe', async ({ ack, body, client }) => {
 app.action('kurashiru_url_input_action', async ({ ack, body, client }) => {
     // ボタンを押したイベントを確認
     await ack();
-    console.log(JSON.stringify(body));
+    const inputText = body.actions[0].value
     try {
-        const result = await client.views.update({
-            // リクエストに含まれる view_id を渡す
-            view_id: body.view.id,
-            // 競合状態を防ぐために更新前の view に含まれる hash を指定
-            hash: body.view.hash,
-            // 更新された view の値をペイロードに含む
-            view: {
-                "title": {
-                    "type": "plain_text",
-                    "text": "レシピを登録"
-                },
-                "submit": {
-                    "type": "plain_text",
-                    "text": "Submita"
-                },
-                "type": "modal",
-                "callback_id": "view_1",
-                "blocks": [
-                    {
-                        "dispatch_action": true,
-                        "type": "input",
-                        "element": {
-                            "type": "plain_text_input",
-                            "initial_value": body.actions[0].value,
-                            "dispatch_action_config": {
-                                "trigger_actions_on": [
-                                    "on_character_entered"
-                                ]
-                            },
-                            "action_id": "kurashiru_url_input_action"
-                        },
-                        "label": {
-                            "type": "plain_text",
-                            "text": "登録したいクラシルのURLを貼ってね",
-                            "emoji": true
-                        }
+        if (KURASHIRU_UTIL.verifyKurashiruUrl(inputText)) {
+            const recipeInfo = await KURASHIRU_UTIL.getRecipeFromWeb(inputText);
+            const result = await client.views.update({
+                // リクエストに含まれる view_id を渡す
+                view_id: body.view.id,
+                // 競合状態を防ぐために更新前の view に含まれる hash を指定
+                hash: body.view.hash,
+                // 更新された view の値をペイロードに含む
+                view: {
+                    "title": {
+                        "type": "plain_text",
+                        "text": "レシピを登録"
                     },
-                    {
-                        "type": "input",
-                        "block_id": "ingredients",
-                        "label": {
-                            "type": "plain_text",
-                            "text": "材料"
+                    "submit": {
+                        "type": "plain_text",
+                        "text": "Submit"
+                    },
+                    "type": "modal",
+                    "callback_id": "view_1",
+                    "blocks": [
+                        {
+                            "dispatch_action": true,
+                            "type": "input",
+                            "element": {
+                                "type": "plain_text_input",
+                                "initial_value": body.actions[0].value,
+                                "dispatch_action_config": {
+                                    "trigger_actions_on": [
+                                        "on_character_entered"
+                                    ]
+                                },
+                                "action_id": "kurashiru_url_input_action"
+                            },
+                            "label": {
+                                "type": "plain_text",
+                                "text": "登録レシピ",
+                                "emoji": true
+                            }
                         },
-                        "element": {
-                            "type": "plain_text_input",
-                            "action_id": "dreamy_input",
-                            "initial_value": `入力されたURLは${body.actions[0].value}`,
-                            "multiline": true
+                        {
+                            "type": "section",
+                            "text": {
+                                "type": "mrkdwn",
+                                "text": `*料理名*\n ${recipeInfo.title}`
+                            },
+                            "accessory": {
+                                "type": "image",
+                                "image_url": recipeInfo.thumbnail,
+                                "alt_text": "thumbnail image"
+                            }
+                        },
+                        {
+                            "type": "input",
+                            "block_id": "ingredients",
+                            "label": {
+                                "type": "plain_text",
+                                "text": "材料"
+                            },
+                            "element": {
+                                "type": "plain_text_input",
+                                "action_id": "dreamy_input",
+                                "initial_value": recipeInfo.ingredients.join(' '),
+                                "multiline": true
+                            }
                         }
-                    }
-                ]
-            }
-        });
-        console.log(result);
+                    ]
+                }
+            });
+            console.log(result);
+        } else {
+            const result = await client.views.update({
+                // リクエストに含まれる view_id を渡す
+                view_id: body.view.id,
+                // 競合状態を防ぐために更新前の view に含まれる hash を指定
+                hash: body.view.hash,
+                // 更新された view の値をペイロードに含む
+                view: {
+                    "title": {
+                        "type": "plain_text",
+                        "text": "レシピを登録"
+                    },
+                    "submit": {
+                        "type": "plain_text",
+                        "text": "Submit"
+                    },
+                    "type": "modal",
+                    "callback_id": "view_1",
+                    "blocks": [
+                        {
+                            "dispatch_action": true,
+                            "type": "input",
+                            "element": {
+                                "type": "plain_text_input",
+                                "initial_value": body.actions[0].value,
+                                "dispatch_action_config": {
+                                    "trigger_actions_on": [
+                                        "on_character_entered"
+                                    ]
+                                },
+                                "action_id": "kurashiru_url_input_action"
+                            },
+                            "label": {
+                                "type": "plain_text",
+                                "text": "それはクラシルのURLではありません:cry:",
+                                "emoji": true
+                            }
+                        }
+                    ]
+                }
+            });
+            console.log(result);
+        }
+
     }
     catch (error) {
         console.error(error);
