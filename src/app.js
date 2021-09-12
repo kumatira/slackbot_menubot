@@ -30,9 +30,9 @@ app.message('hello', async ({ message, say }) => {
             "type": "button",
             "text": {
                 "type": "plain_text",
-                "text": "Click Me"
+                "text": "レシピを登録"
             },
-            "action_id": "button_click"
+            "action_id": "register_recipe"
             }
         }
         ],
@@ -40,10 +40,121 @@ app.message('hello', async ({ message, say }) => {
     });
 });
 
-app.action('button_click', async ({ body, ack, say }) => {
+app.action('register_recipe', async ({ ack, body, client }) => {
     // Acknowledge the action
     await ack();
-    await say(`<@${body.user.id}> clicked the button`);
+    try {
+        const result = await client.views.open({
+            // 適切な trigger_id を受け取ってから 3 秒以内に渡す
+            trigger_id: body.trigger_id,
+            // view の値をペイロードに含む
+            view: {
+                "title": {
+                    "type": "plain_text",
+                    "text": "レシピを登録"
+                },
+                "submit": {
+                    "type": "plain_text",
+                    "text": "Submita"
+                },
+                "type": "modal",
+                "callback_id": "view_1",
+                "blocks": [
+                    {
+                        "dispatch_action": true,
+                        "type": "input",
+                        "element": {
+                            "type": "plain_text_input",
+                            "dispatch_action_config": {
+                                "trigger_actions_on": [
+                                    "on_character_entered"
+                                ]
+                            },
+                            "action_id": "kurashiru_url_input_action"
+                        },
+                        "label": {
+                            "type": "plain_text",
+                            "text": "登録したいクラシルのURLを貼ってね",
+                            "emoji": true
+                        }
+                    }
+                ]
+            }
+            });
+            console.log(result);
+        }
+        catch (error) {
+            console.error(error);
+        }
+
+});
+
+// action_id: button_abc のボタンを押すイベントをリッスン
+// （そのボタンはモーダルの中にあるという想定）
+app.action('kurashiru_url_input_action', async ({ ack, body, client }) => {
+    // ボタンを押したイベントを確認
+    await ack();
+    console.log(JSON.stringify(body));
+    try {
+        const result = await client.views.update({
+            // リクエストに含まれる view_id を渡す
+            view_id: body.view.id,
+            // 競合状態を防ぐために更新前の view に含まれる hash を指定
+            hash: body.view.hash,
+            // 更新された view の値をペイロードに含む
+            view: {
+                "title": {
+                    "type": "plain_text",
+                    "text": "レシピを登録"
+                },
+                "submit": {
+                    "type": "plain_text",
+                    "text": "Submita"
+                },
+                "type": "modal",
+                "callback_id": "view_1",
+                "blocks": [
+                    {
+                        "dispatch_action": true,
+                        "type": "input",
+                        "element": {
+                            "type": "plain_text_input",
+                            "initial_value": body.actions[0].value,
+                            "dispatch_action_config": {
+                                "trigger_actions_on": [
+                                    "on_character_entered"
+                                ]
+                            },
+                            "action_id": "kurashiru_url_input_action"
+                        },
+                        "label": {
+                            "type": "plain_text",
+                            "text": "登録したいクラシルのURLを貼ってね",
+                            "emoji": true
+                        }
+                    },
+                    {
+                        "type": "input",
+                        "block_id": "ingredients",
+                        "label": {
+                            "type": "plain_text",
+                            "text": "材料"
+                        },
+                        "element": {
+                            "type": "plain_text_input",
+                            "action_id": "dreamy_input",
+                            "initial_value": `入力されたURLは${body.actions[0].value}`,
+                            "multiline": true
+                        }
+                    }
+                ]
+            }
+        });
+        console.log(result);
+    }
+    catch (error) {
+        console.error(error);
+    }
 });
 
 // Lambda 関数のイベントを処理します
