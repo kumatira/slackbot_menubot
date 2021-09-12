@@ -1,0 +1,43 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  slackbot
+Globals:
+  Function:
+    Timeout: 3
+
+Parameters:
+  SLACKSIGNINGSECRET:
+    Type: String
+  SLACKBOTTOKEN:
+    Type: String
+
+Resources:
+  SlackBotApiGateway:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: v1
+      # SAM(CloudFormation)特有のバグでステージに勝手にStage/Prodが作られる問題を回避するための設定.
+      # https://medium.com/veltra-engineering/avoid-aws-sam-stage-stage-45f7331b7b5d
+      # https://github.com/aws/serverless-application-model/issues/191#issuecomment-515589603
+      OpenApiVersion: 3.0.2
+  MainFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      Handler: app.handler
+      Runtime: nodejs14.x
+      Policies:
+        - CloudWatchEventsFullAccess
+      # Lambda内環境変数
+      Environment:
+        Variables:
+          SLACK_SIGNING_SECRET: !Ref SLACKSIGNINGSECRET
+          SLACK_BOT_TOKEN: !Ref SLACKBOTTOKEN
+      Events:
+        PostResource:
+          Type: Api
+          Properties:
+            Path: /slack/events
+            Method: post
+            RestApiId: !Ref SlackBotApiGateway

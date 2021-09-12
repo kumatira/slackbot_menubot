@@ -1,0 +1,7 @@
+version = 0.1
+[default]
+[default.deploy]
+[default.deploy.parameters]
+parameter_overrides = "SLACKSIGNINGSECRET=\"YOUR_TOKEN\" SLACKBOTTOKEN=\"xoxb-YOUR_TOKEN\""
+
+[default.build.parameters]
